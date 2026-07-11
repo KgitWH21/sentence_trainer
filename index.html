@@ -40,7 +40,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 12px;
     }
@@ -51,14 +51,34 @@
       min-height: 150px;
     }
 
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
     .label {
-      margin: 0 0 8px;
+      margin: 0;
       font-size: 0.8rem;
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: #666;
     }
+
+    .lock-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      color: #555;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .lock-control input { margin: 0; }
 
     .type {
       margin: 0 0 10px;
@@ -110,25 +130,43 @@
 
     <section class="grid" aria-live="polite">
       <article class="card">
-        <p class="label">Sentence starter</p>
+        <div class="card-header">
+          <p class="label">Sentence starter</p>
+          <label class="lock-control"><input id="starterLock" type="checkbox"> Lock</label>
+        </div>
         <p class="type" id="starterType"></p>
         <p class="example" id="starterExample"></p>
       </article>
 
       <article class="card">
-        <p class="label">Sentence ender</p>
+        <div class="card-header">
+          <p class="label">Craft device / construction</p>
+          <label class="lock-control"><input id="deviceLock" type="checkbox"> Lock</label>
+        </div>
+        <p class="type" id="deviceType"></p>
+        <p class="example" id="deviceExample"></p>
+      </article>
+
+      <article class="card">
+        <div class="card-header">
+          <p class="label">Sentence ender</p>
+          <label class="lock-control"><input id="enderLock" type="checkbox"> Lock</label>
+        </div>
         <p class="type" id="enderType"></p>
         <p class="example" id="enderExample"></p>
       </article>
     </section>
 
     <section class="prompt-card" aria-live="polite">
-      <p class="label">Training idea</p>
+      <div class="card-header">
+        <p class="label">Training idea</p>
+        <label class="lock-control"><input id="promptLock" type="checkbox"> Lock</label>
+      </div>
       <p class="example" id="trainingPrompt"></p>
     </section>
 
     <button id="generateButton" type="button">Generate New Challenge</button>
-    <p class="tip">Tip: Keep the sentence under 30 words. Press the space bar for another challenge.</p>
+    <p class="tip">Tip: Lock any element you want to keep, then generate again. Press the space bar for another challenge.</p>
   </main>
 
   <script>
@@ -159,6 +197,96 @@
       { type: "Negative construction", example: "Open with “Never,” “Not until,” or “Nothing.”" }
     ];
 
+    // Master list of rhetorical devices and sentence-construction techniques,
+    // kept alphabetically sorted by name.
+    const craftDevices = [
+      { type: "Absolute phrase", example: "Add a noun-plus-modifier phrase that frames the main clause: ‘Her hands shaking, she opened it.’" },
+      { type: "Action in the verb", example: "Replace a weak verb plus abstract noun with one precise, energetic verb." },
+      { type: "Alliteration", example: "Repeat an opening consonant sound in nearby words without forcing it." },
+      { type: "Anacoluthon", example: "Begin in one grammatical construction, then deliberately break into another to convey urgency, emotion, or disrupted thought." },
+      { type: "Anadiplosis", example: "End one clause with a word that begins the next clause." },
+      { type: "Anaphora", example: "Repeat the same word or phrase at the beginning of successive clauses." },
+      { type: "Anastrophe", example: "Invert ordinary word order for emphasis or an archaic cadence: ‘Bright was the moon.’" },
+      { type: "Antithesis", example: "Place contrasting ideas in matching grammatical structures." },
+      { type: "Aposiopesis", example: "Break off before completing the thought, letting silence or punctuation supply the emotional force." },
+      { type: "Apposition", example: "Rename or clarify a noun with a nearby descriptive phrase." },
+      { type: "Appositive chain", example: "Follow a noun with two or more renaming phrases that reveal increasingly specific detail." },
+      { type: "Archaism", example: "Use an older word, inflection, or turn of syntax sparingly to create historical, ceremonial, or mythic weight." },
+      { type: "Asyndeton", example: "Omit conjunctions from a series to increase speed or force." },
+      { type: "Auxesis", example: "Arrange words or clauses in a rising sequence of force, scale, or consequence." },
+      { type: "Balanced structure", example: "Give two parts of the sentence similar length and grammatical form." },
+      { type: "Brachylogia", example: "Compress the sentence by omitting expected words while preserving clarity and force." },
+      { type: "Catachresis", example: "Use a deliberately strained or impossible metaphor to name something ordinary language cannot quite contain." },
+      { type: "Chiasmus", example: "Repeat a grammatical pattern in reverse order: A-B, then B-A." },
+      { type: "Climactic ordering", example: "Arrange details from least important or intense to most important or intense." },
+      { type: "Commoratio", example: "Repeat the same central idea in several differently worded clauses to dwell on it for emphasis." },
+      { type: "Concrete imagery", example: "Express the idea through specific physical details the reader can sense." },
+      { type: "Concrete subject", example: "Make a specific person, object, or force the grammatical subject instead of an abstraction." },
+      { type: "Conduplicatio", example: "Repeat a key word from one clause in the next, using recurrence to bind and intensify the sentence." },
+      { type: "Cumulative sentence", example: "State the main clause early, then add layers of modifying detail." },
+      { type: "Delayed main clause", example: "Open with modifiers or dependent material, then postpone the core statement for emphasis." },
+      { type: "Delayed subject", example: "Delay naming the sentence’s subject until descriptive or situational material has prepared for it." },
+      { type: "Delayed verb", example: "Separate the subject from its main verb with controlled descriptive material to build anticipation." },
+      { type: "Diacope", example: "Repeat a word or phrase with a small interruption between repetitions." },
+      { type: "Direct sentence", example: "Use a clear subject, a strong verb, and a concrete object with no unnecessary framing." },
+      { type: "Ellipsis", example: "Deliberately omit words the reader can easily supply from context." },
+      { type: "Enallage", example: "Deliberately substitute an unexpected grammatical form, tense, person, or number for stylistic effect." },
+      { type: "End emphasis", example: "Move the newest, heaviest, or most surprising information to the final phrase." },
+      { type: "Epanalepsis", example: "Repeat the opening word or phrase at the end of the same sentence or clause." },
+      { type: "Epistrophe", example: "Repeat the same word or phrase at the ends of successive clauses." },
+      { type: "Epizeuxis", example: "Repeat a word immediately with no interruption: ‘Gone, gone, gone.’" },
+      { type: "Extended metaphor", example: "Develop one comparison through more than one related detail or action." },
+      { type: "Front-loaded modifier", example: "Begin with a descriptive phrase that establishes condition, attitude, time, or setting before the subject appears." },
+      { type: "Gerund phrase", example: "Build part of the sentence around an -ing form acting as a noun: ‘Waiting was the hardest part.’" },
+      { type: "Hendiadys", example: "Express one complex idea through two coordinated words joined by ‘and’: ‘sound and fury.’" },
+      { type: "Hypallage", example: "Transfer a modifier from the word it logically describes to a neighboring noun: ‘a sleepless night.’" },
+      { type: "Hyperbole", example: "Use obvious exaggeration to intensify an emotion, impression, or judgment." },
+      { type: "Hypotaxis", example: "Build a sentence through layers of subordinate clauses so relationships of cause, time, and condition are explicit." },
+      { type: "Interrupting modifier", example: "Insert a brief descriptive phrase inside the main clause without losing grammatical control." },
+      { type: "Inversion", example: "Reverse ordinary word order to emphasize a particular element." },
+      { type: "Irony", example: "Create tension between the apparent meaning and the intended or actual meaning." },
+      { type: "Isocolon", example: "Create successive phrases or clauses of roughly equal length and corresponding structure." },
+      { type: "Loose-to-tight movement", example: "Begin broadly, then narrow the sentence toward one precise action, image, or conclusion." },
+      { type: "Metaphor", example: "Describe one thing as another to reveal a useful resemblance." },
+      { type: "Modifier ladder", example: "Add two or three modifiers in a deliberate sequence, each sharpening the image or action." },
+      { type: "Nominalization repair", example: "Turn an abstract noun ending in -tion, -ment, or -ance back into a vivid verb when possible." },
+      { type: "Onomatopoeia", example: "Use a word whose sound imitates or suggests the sound being described." },
+      { type: "Oxymoron", example: "Join apparently contradictory terms to create a concentrated effect." },
+      { type: "Parallel clauses", example: "Build two or more clauses with the same grammatical pattern." },
+      { type: "Parallelism", example: "Repeat a grammatical structure across related words, phrases, or clauses." },
+      { type: "Parataxis", example: "Place clauses beside one another with little or no subordination, creating speed, bluntness, or biblical gravity." },
+      { type: "Parenthesis", example: "Insert a grammatically independent aside that complicates, comments on, or undercuts the main statement." },
+      { type: "Participial phrase", example: "Use an -ing or -ed phrase to compress a related action or condition into the sentence." },
+      { type: "Periodic sentence", example: "Delay the main clause or central meaning until the end." },
+      { type: "Personification", example: "Give a nonhuman thing a distinctly human action, motive, or feeling." },
+      { type: "Pleonasm", example: "Use deliberate verbal excess or redundancy to create emphasis, solemnity, or a spoken cadence." },
+      { type: "Polysyndeton", example: "Repeat conjunctions between items to slow, accumulate, or intensify them." },
+      { type: "Predicate adjective shift", example: "Move an adjective away from its noun and make it part of the sentence’s main assertion." },
+      { type: "Prepositional layering", example: "Use a controlled sequence of prepositional phrases to locate or deepen the image." },
+      { type: "Prolepsis", example: "Place a word, judgment, or anticipated result earlier than normal to foreground what is coming." },
+      { type: "Question and answer", example: "Pose a genuine or rhetorical question, then answer it within the same sentence or immediately after it." },
+      { type: "Relative clause", example: "Add a who, which, or that clause to identify, restrict, or expand a noun." },
+      { type: "Repeated sentence frame", example: "Repeat the same syntactic frame while changing the key content inside it." },
+      { type: "Rhetorical question", example: "Ask a question for emphasis rather than to obtain an answer." },
+      { type: "Right-branching sentence", example: "Place the main clause first, then let each new phrase extend naturally to the right." },
+      { type: "Scesis onomaton", example: "Build a forceful sentence from a rapid series of near-synonymous nouns or adjectives with few verbs." },
+      { type: "Series of three", example: "Arrange three coordinated words, phrases, or clauses to create completeness and rhythm." },
+      { type: "Short-long contrast", example: "Pair a short clause with a much longer one to create emphasis through rhythmic contrast." },
+      { type: "Simile", example: "Compare unlike things using ‘like’ or ‘as’ to sharpen an image." },
+      { type: "Specific-before-abstract", example: "Present a concrete example or physical fact before stating its larger meaning." },
+      { type: "Subject-verb proximity", example: "Keep the main subject and verb close together so the sentence remains easy to follow." },
+      { type: "Suspended sentence", example: "Withhold a key word or completion across several parallel phrases before finally releasing it." },
+      { type: "Synchysis", example: "Interlock words or phrases in an intentionally tangled order to create density, grandeur, or confusion." },
+      { type: "Tmesis", example: "Split a word or fixed phrase by inserting another word for emphasis or comic force." },
+      { type: "Transferred epithet", example: "Attach an adjective to a nearby noun rather than to the person or thing it logically describes." },
+      { type: "Tricolon", example: "Build the sentence around three parallel words, phrases, or clauses." },
+      { type: "Understatement", example: "Deliberately describe something as less important or intense than it is." },
+      { type: "V-2 inversion", example: "Place the finite verb unusually early, often after an opening element, to create a formal or older cadence." },
+      { type: "Verb sequence", example: "Use a series of precise verbs to make the subject’s progression visible and energetic." },
+      { type: "Waw-consecutive cadence", example: "Link successive actions with repeated ‘and’ clauses to evoke scriptural or chronicle-like movement." },
+      { type: "Weighted ending", example: "Reserve the longest, most complex, or most consequential element for the sentence’s end." },
+      { type: "Zeugma", example: "Use one governing word with two others in different senses." }    ];
+
     const enders = [
       { type: "Strong noun", example: "End on the most vivid person, place, object, or idea." },
       { type: "Main verb", example: "Let the final word be the decisive action." },
@@ -183,6 +311,300 @@
     ];
 
     const prompts = [
+      // Everyday routines and immediate surroundings
+      "What you had for breakfast.",
+      "The last place you walked.",
+      "The last thing you watched.",
+      "The last thing you read.",
+      "The last song you heard.",
+      "The last thing you bought.",
+      "The last message you received.",
+      "The last room you entered.",
+      "The last thing you searched for online.",
+      "The last minor inconvenience you encountered.",
+      "Something currently within reach.",
+      "The nearest window.",
+      "The chair you are sitting in.",
+      "A sound you can hear right now.",
+      "An object on your desk or table.",
+      "Something nearby that needs cleaning.",
+      "A light source in the room.",
+      "The temperature where you are.",
+      "The smell of the room you are in.",
+      "The texture of something in your hand.",
+      "Making coffee or tea.",
+      "Brushing your teeth.",
+      "Taking out the trash.",
+      "Opening your computer.",
+      "Waiting for food to heat.",
+      "Getting dressed.",
+      "Preparing for bed.",
+      "Looking for something you misplaced.",
+      "Standing in a checkout line.",
+      "Carrying groceries inside.",
+      "Washing a dish.",
+      "Folding laundry.",
+      "Charging a dying phone.",
+      "Checking the weather before leaving.",
+      "Walking through a parking lot.",
+      "Hearing a neighbor through the wall.",
+      "Watching someone parallel park.",
+      "Opening a package.",
+      "Realizing you are out of something ordinary.",
+      "Deciding what to eat when nothing sounds good.",
+
+      // Observation, opinion, and small private truths
+      "A food you think is overrated.",
+      "A minor task you dislike.",
+      "Something people make unnecessarily complicated.",
+      "A habit you recently developed.",
+      "A product that disappointed you.",
+      "Something that was better ten years ago.",
+      "A skill that looks easier than it is.",
+      "A place that feels different at night.",
+      "Something you have changed your mind about.",
+      "A small luxury you would miss.",
+      "A rule you follow even when no one is watching.",
+      "A harmless lie people tell every day.",
+      "A private ritual that helps you begin work.",
+      "A sound that instantly irritates you.",
+      "A smell that returns you to another time.",
+      "A phrase someone says too often.",
+      "A possession you keep despite rarely using it.",
+      "A minor decision you keep postponing.",
+      "The difference between being tired and being finished.",
+      "A moment when silence was more useful than advice.",
+
+      // Memory and the passage of time
+      "Your first home.",
+      "A school hallway you still remember.",
+      "A meal someone used to make for you.",
+      "A childhood game.",
+      "A familiar family phrase.",
+      "A place you have not visited in years.",
+      "An old piece of clothing.",
+      "A former daily routine.",
+      "A song you once heard constantly.",
+      "A forgotten acquaintance.",
+      "The first time you were trusted with something important.",
+      "A childhood fear that now seems small.",
+      "A childhood fear that no longer seems small.",
+      "The first time an adult disappointed you.",
+      "A room that no longer exists.",
+      "An object inherited from someone else.",
+      "The last time a group of people were all together.",
+      "A photograph whose meaning changed over time.",
+      "A memory you are no longer sure is accurate.",
+      "Returning to a place that once felt enormous.",
+
+      // Connection, love, friendship, and belonging
+      "The first moment you felt understood by someone.",
+      "A quiet act of care.",
+      "Someone remembering a detail you thought they had forgotten.",
+      "A shared joke that would make no sense to anyone else.",
+      "Sitting beside someone without needing to speak.",
+      "A reunion after a long absence.",
+      "The first ordinary morning after falling in love.",
+      "Realizing a friendship has become permanent.",
+      "Realizing a friendship has already ended.",
+      "A conversation that repaired something.",
+      "A conversation that changed nothing.",
+      "Someone showing up when they did not have to.",
+      "A kindness from a stranger.",
+      "Being welcomed into a family or community.",
+      "Feeling lonely in a crowded room.",
+      "Missing someone during an otherwise happy moment.",
+      "The moment a child trusts an adult.",
+      "The moment an adult recognizes a child has grown.",
+      "The relief of seeing a familiar face.",
+      "The pain of being treated like a stranger by someone familiar.",
+
+      // Work, effort, failure, and achievement
+      "Beginning a task you have avoided for weeks.",
+      "Finishing work no one else will notice.",
+      "Making a mistake in front of other people.",
+      "Realizing you are better at something than you used to be.",
+      "Realizing talent will not be enough.",
+      "Receiving praise you do not fully believe.",
+      "Receiving criticism you know is correct.",
+      "Being asked to lead before you feel ready.",
+      "Watching someone else receive an opportunity you wanted.",
+      "Solving a problem after nearly giving up.",
+      "Discovering that the easy part is over.",
+      "Doing excellent work while feeling terrible.",
+      "Pretending to understand during a meeting or lesson.",
+      "The moment practice becomes instinct.",
+      "The embarrassment of being confidently wrong.",
+      "The private satisfaction of doing something properly.",
+      "A project that grew beyond its original purpose.",
+      "The moment a long effort finally becomes visible.",
+      "Choosing not to take the safest path.",
+      "Starting over after losing progress.",
+
+      // Change, thresholds, and turning points
+      "Moving into a new home.",
+      "Sleeping in an unfamiliar room for the first time.",
+      "The last day at a job.",
+      "The first day after retirement.",
+      "Leaving a place without knowing whether you will return.",
+      "Deleting a phone number you once knew by heart.",
+      "Giving away something that once mattered deeply.",
+      "Realizing an era of your life has ended.",
+      "Hearing news that changes the shape of the future.",
+      "Choosing a name for someone or something new.",
+      "Signing a document that makes a decision real.",
+      "Crossing a border.",
+      "Seeing your hometown through the eyes of a visitor.",
+      "The first night after a major decision.",
+      "The ordinary morning after a life-changing event.",
+      "Learning that a familiar building will be demolished.",
+      "Packing one final box.",
+      "The moment a temporary arrangement becomes permanent.",
+      "A goodbye that seemed unimportant at the time.",
+      "A beginning that did not feel like one.",
+
+      // Joy, beauty, wonder, and grace
+      "Seeing a place you had only known from pictures.",
+      "Hearing a favorite song at exactly the right moment.",
+      "Laughing so hard you cannot speak.",
+      "Receiving unexpectedly good news.",
+      "Watching someone you love succeed.",
+      "A meal that tastes better because of the company.",
+      "The first comfortable day after a long illness.",
+      "A pet greeting someone at the door.",
+      "The first rain after a dry season.",
+      "A city seen from above at night.",
+      "A room filled with people who are glad you came.",
+      "Finding money in an old coat.",
+      "Waking before an alarm and realizing you can sleep longer.",
+      "The sudden cancellation of an unwanted obligation.",
+      "A stranger giving directions with unusual care.",
+      "Seeing an elderly couple make each other laugh.",
+      "A baby recognizing a familiar voice.",
+      "A long-awaited package finally arriving.",
+      "The moment music turns a gathering into a celebration.",
+      "An ordinary day that you suddenly recognize as good.",
+
+      // Loss, grief, fear, and devastation
+      "A phone call received in the middle of the night.",
+      "The first meal after a funeral.",
+      "Entering the room of someone who has died.",
+      "Learning that someone will not recover.",
+      "The moment a relationship becomes irreparable.",
+      "Being unable to reach someone during an emergency.",
+      "Returning home after a disaster.",
+      "Watching a familiar place burn.",
+      "Waiting for test results.",
+      "The instant before delivering terrible news.",
+      "The instant after receiving terrible news.",
+      "Packing the belongings of someone who is gone.",
+      "A family argument that reveals an older wound.",
+      "Realizing an apology will never come.",
+      "The silence after an ambulance leaves.",
+      "A child asking a question no adult can answer.",
+      "The last lucid conversation with someone who is fading.",
+      "Recognizing that a loved one no longer recognizes you.",
+      "The first anniversary of a loss.",
+      "Discovering that grief has changed but has not ended.",
+
+      // Bodily, medical, and vulnerable experience
+      "Waking from anesthesia.",
+      "Waiting alone in an examination room.",
+      "Learning to use crutches.",
+      "The first breath after surfacing from deep water.",
+      "A panic attack in a public place.",
+      "The sudden awareness of your own heartbeat.",
+      "Trying to hide pain from someone who knows you well.",
+      "The first time your body refuses something your mind expects it to do.",
+      "Sitting beside someone in a hospital overnight.",
+      "Receiving a diagnosis that finally explains years of symptoms.",
+      "The boredom of a long recovery.",
+      "The indignity of needing help with an ordinary task.",
+      "The first walk outside after being confined indoors.",
+      "The strange gratitude of an uneventful medical result.",
+      "Realizing that exhaustion has become normal.",
+
+      // Public life, history, and rare occurrences
+      "A citywide power outage.",
+      "An earthquake during an ordinary meal.",
+      "A sudden evacuation.",
+      "A crowd realizing the event has gone wrong.",
+      "The final announcement at a closing factory.",
+      "The first day after a war ends.",
+      "The first day after a war begins.",
+      "A government announcement that changes daily life.",
+      "A community searching for a missing person.",
+      "A town preparing for a hurricane.",
+      "A family crossing a border with only what they can carry.",
+      "The opening of a time capsule.",
+      "The demolition of a neighborhood landmark.",
+      "A total solar eclipse.",
+      "The first human voice heard after days of isolation.",
+      "A rescue team finding someone alive.",
+      "A public celebration after years of waiting.",
+      "A ceremony honoring someone who is absent.",
+      "The rediscovery of something believed lost.",
+      "The moment a historical event becomes a personal memory.",
+
+      // Cosmic and divine
+      "Receiving a call to leave the familiar world behind.",
+      "Standing at the threshold of a place no one returns from unchanged.",
+      "A dream that feels more like a summons than a dream.",
+      "An ordinary person discovering a sacred obligation.",
+      "Meeting a guide who may be wise, dangerous, or both.",
+      "Refusing a destiny that continues to return in new forms.",
+      "Crossing into a realm governed by unfamiliar laws.",
+      "Entering the wilderness alone.",
+      "A test that reveals character rather than strength.",
+      "Receiving help from an unexpected or supernatural source.",
+      "A bargain made with a god, spirit, ancestor, or unknown power.",
+      "A gift that is also a burden.",
+      "A prophecy misunderstood until it is nearly fulfilled.",
+      "A sign that could be coincidence or revelation.",
+      "A prayer offered without certainty that anyone is listening.",
+      "A prayer answered in the least desired way.",
+      "The silence that follows a miracle.",
+      "The first moment someone suspects the gods are afraid.",
+      "A divine command that conflicts with human compassion.",
+      "A sacred place damaged by ordinary people.",
+      "A ritual performed by someone who no longer believes in it.",
+      "A ritual that works despite everyone’s disbelief.",
+      "The discovery that an enemy serves the same god.",
+      "The moment a hero realizes victory requires sacrifice.",
+      "Descending into darkness to recover someone or something lost.",
+      "Facing the figure who embodies one’s deepest fear.",
+      "A symbolic death followed by an uncertain return.",
+      "Returning home with knowledge no one wants to hear.",
+      "Finding that home has changed while the traveler was away.",
+      "Bringing back a gift that cannot be shared easily.",
+      "Realizing the monster and the savior are the same being.",
+      "A mortal arguing with fate.",
+      "A god envying an ordinary human life.",
+      "An immortal confronting the meaning of endless time.",
+      "The creation of the first boundary between order and chaos.",
+      "The final star going dark.",
+      "A civilization hearing evidence that it is not alone.",
+      "The universe appearing briefly conscious.",
+      "Time folding so that an ancestor meets a descendant.",
+      "A person seeing the scale of the cosmos and feeling comfort instead of terror.",
+      "A person seeing the scale of the cosmos and feeling terror instead of wonder.",
+      "The instant before a world is created.",
+      "The instant after a world ends.",
+      "A soul waiting to be judged.",
+      "A judgment delivered by a flawed divine authority.",
+      "A dead person permitted one final ordinary conversation.",
+      "An ancestor appearing in a moment of crisis.",
+      "A forgotten god receiving the first prayer in centuries.",
+      "A revelation that makes daily life harder rather than easier.",
+      "A cosmic truth hidden inside a mundane object.",
+      "The sacred concealed within an ordinary meal.",
+      "A child asking where the universe came from.",
+      "The moment faith survives certainty.",
+      "The moment faith collapses under silence.",
+      "Discovering that divine beings are bound by rules too.",
+      "The hero returning not triumphant, but changed enough to begin again.",
+
+      // Fictional pressure without requiring a full story
       "A character enters a room and realizes something is wrong.",
       "Someone receives a message they were never meant to see.",
       "A familiar place feels different after many years.",
@@ -210,15 +632,27 @@
     }
 
     function generateChallenge() {
-      const starter = randomItem(starters);
-      const ender = randomItem(enders);
-      const prompt = randomItem(prompts);
+      if (!document.getElementById("starterLock").checked) {
+        const starter = randomItem(starters);
+        document.getElementById("starterType").textContent = starter.type;
+        document.getElementById("starterExample").textContent = starter.example;
+      }
 
-      document.getElementById("starterType").textContent = starter.type;
-      document.getElementById("starterExample").textContent = starter.example;
-      document.getElementById("enderType").textContent = ender.type;
-      document.getElementById("enderExample").textContent = ender.example;
-      document.getElementById("trainingPrompt").textContent = prompt;
+      if (!document.getElementById("deviceLock").checked) {
+        const device = randomItem(craftDevices);
+        document.getElementById("deviceType").textContent = device.type;
+        document.getElementById("deviceExample").textContent = device.example;
+      }
+
+      if (!document.getElementById("enderLock").checked) {
+        const ender = randomItem(enders);
+        document.getElementById("enderType").textContent = ender.type;
+        document.getElementById("enderExample").textContent = ender.example;
+      }
+
+      if (!document.getElementById("promptLock").checked) {
+        document.getElementById("trainingPrompt").textContent = randomItem(prompts);
+      }
     }
 
     document.getElementById("generateButton").addEventListener("click", generateChallenge);
