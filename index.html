@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentence Trainer</title>
+  <style>
+    :root {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111;
+      background: #f5f5f5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(720px, 100%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: #555;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      border: 1px solid #bbb;
+      padding: 16px;
+      min-height: 150px;
+    }
+
+    .label {
+      margin: 0 0 8px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+    }
+
+    .type {
+      margin: 0 0 10px;
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+
+    .example {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .prompt-card {
+      border: 1px solid #bbb;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #111;
+      background: #111;
+      color: white;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover { background: #333; }
+    button:focus-visible { outline: 3px solid #888; outline-offset: 2px; }
+
+    .tip {
+      margin: 16px 0 0;
+      color: #555;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sentence Trainer</h1>
+    <p class="subtitle">Generate a sentence structure challenge and write one sentence that follows it.</p>
+
+    <section class="grid" aria-live="polite">
+      <article class="card">
+        <p class="label">Sentence starter</p>
+        <p class="type" id="starterType"></p>
+        <p class="example" id="starterExample"></p>
+      </article>
+
+      <article class="card">
+        <p class="label">Sentence ender</p>
+        <p class="type" id="enderType"></p>
+        <p class="example" id="enderExample"></p>
+      </article>
+    </section>
+
+    <section class="prompt-card" aria-live="polite">
+      <p class="label">Training idea</p>
+      <p class="example" id="trainingPrompt"></p>
+    </section>
+
+    <button id="generateButton" type="button">Generate New Challenge</button>
+    <p class="tip">Tip: Keep the sentence under 30 words. Press the space bar for another challenge.</p>
+  </main>
+
+  <script>
+    const starters = [
+      { type: "Noun", example: "Begin with a concrete person, place, object, or idea." },
+      { type: "Verb", example: "Open with an action word, often as a command: “Listen.”" },
+      { type: "Adjective", example: "Begin with a descriptive word or phrase: “Silent and watchful...”" },
+      { type: "Adverb", example: "Start with an adverb that changes the pace or attitude: “Reluctantly...”" },
+      { type: "Location", example: "Place the reader immediately: “Beneath the overpass...”" },
+      { type: "Prepositional phrase", example: "Begin with a relationship in space or time: “After the storm...”" },
+      { type: "Time marker", example: "Start with when something happens: “Three hours later...”" },
+      { type: "Participial phrase", example: "Begin with an -ing or -ed phrase: “Dragging one foot...”" },
+      { type: "Infinitive phrase", example: "Begin with “to” plus a verb: “To reach the harbor...”" },
+      { type: "Dependent clause", example: "Open with “although,” “because,” “when,” “unless,” or a similar word." },
+      { type: "Conditional", example: "Begin with a condition: “If the lights failed...”" },
+      { type: "Conjunction", example: "Start with “And,” “But,” or “Yet” to continue pressure or contrast." },
+      { type: "Pronoun", example: "Begin directly with “She,” “He,” “They,” “It,” or another pronoun." },
+      { type: "Dialogue", example: "Open with something spoken aloud." },
+      { type: "Question", example: "Begin by asking a question that creates tension or curiosity." },
+      { type: "Command", example: "Address someone directly: “Run.” “Forget the map.”" },
+      { type: "Interjection", example: "Begin with a reaction: “No.” “Well...” “Damn.”" },
+      { type: "Appositive", example: "Start with a phrase that renames the subject: “The youngest of five brothers...”" },
+      { type: "Absolute phrase", example: "Open with a detached image: “His hands trembling...”" },
+      { type: "Direct object first", example: "Put the object before the subject: “That explanation, she rejected.”" },
+      { type: "Predicate adjective first", example: "Lead with a judgment or condition: “Impossible was the word...”" },
+      { type: "Sound or sensation", example: "Begin with something heard, felt, smelled, or seen." },
+      { type: "Contrast", example: "Start with “Instead,” “Nevertheless,” “For once,” or another turn." },
+      { type: "Negative construction", example: "Open with “Never,” “Not until,” or “Nothing.”" }
+    ];
+
+    const enders = [
+      { type: "Strong noun", example: "End on the most vivid person, place, object, or idea." },
+      { type: "Main verb", example: "Let the final word be the decisive action." },
+      { type: "Concrete image", example: "Finish with something the reader can see." },
+      { type: "Revelation", example: "Save the new or surprising information for the end." },
+      { type: "Emotional reversal", example: "Turn the feeling of the sentence in its final phrase." },
+      { type: "Short emphatic word", example: "Land on one compact word: “No.” “Him.” “Again.”" },
+      { type: "Prepositional phrase", example: "End by locating the action: “beneath the house.”" },
+      { type: "Adverb", example: "Finish with an adverb that meaningfully alters the action." },
+      { type: "Subordinate clause", example: "End with a clause beginning with “because,” “until,” or “as though.”" },
+      { type: "Participial phrase", example: "Finish with an -ing phrase that extends the action." },
+      { type: "Appositive", example: "End with a renaming phrase after a comma or dash." },
+      { type: "Fragment", example: "Follow the sentence with a deliberate fragment. Something sharp." },
+      { type: "Question", example: "Finish by turning the sentence into an unanswered question." },
+      { type: "Parallel structure", example: "End with two or three balanced phrases." },
+      { type: "Repetition", example: "Repeat a key word at the end for pressure or emphasis." },
+      { type: "Withheld information", example: "Stop just before explaining the most important detail." },
+      { type: "Name", example: "Make the final word a character’s name." },
+      { type: "Sensory detail", example: "End on a sound, texture, smell, taste, or color." },
+      { type: "Contradiction", example: "Finish with a detail that challenges the sentence’s opening claim." },
+      { type: "Threat", example: "Let the final phrase imply immediate danger." }
+    ];
+
+    const prompts = [
+      "A character enters a room and realizes something is wrong.",
+      "Someone receives a message they were never meant to see.",
+      "A familiar place feels different after many years.",
+      "A character lies while trying to sound sincere.",
+      "Two people notice the same object but interpret it differently.",
+      "A machine begins doing something it was not designed to do.",
+      "A character hears a sound from an impossible location.",
+      "Someone tries to leave without being noticed.",
+      "A small mistake creates a much larger problem.",
+      "A character recognizes a stranger.",
+      "An ordinary object carries an unsettling implication.",
+      "Someone wins an argument and immediately regrets it.",
+      "A character discovers that an old memory is inaccurate.",
+      "A person waits for someone who may not come.",
+      "A celebration is interrupted by bad news.",
+      "A character must choose between speed and caution.",
+      "Someone tries to hide physical pain.",
+      "A peaceful scene contains one disturbing detail.",
+      "A character realizes they have been followed.",
+      "Two people speak politely while threatening each other."
+    ];
+
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function generateChallenge() {
+      const starter = randomItem(starters);
+      const ender = randomItem(enders);
+      const prompt = randomItem(prompts);
+
+      document.getElementById("starterType").textContent = starter.type;
+      document.getElementById("starterExample").textContent = starter.example;
+      document.getElementById("enderType").textContent = ender.type;
+      document.getElementById("enderExample").textContent = ender.example;
+      document.getElementById("trainingPrompt").textContent = prompt;
+    }
+
+    document.getElementById("generateButton").addEventListener("click", generateChallenge);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.code === "Space" && event.target === document.body) {
+        event.preventDefault();
+        generateChallenge();
+      }
+    });
+
+    generateChallenge();
+  </script>
+</body>
+</html>
