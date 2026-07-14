@@ -165,6 +165,15 @@
       <p class="example" id="trainingPrompt"></p>
     </section>
 
+    <section class="prompt-card" aria-live="polite">
+      <div class="card-header">
+        <p class="label">Suggested register</p>
+        <label class="lock-control"><input id="registerLock" type="checkbox"> Lock</label>
+      </div>
+      <p class="type" id="registerType"></p>
+      <p class="example" id="registerExample"></p>
+    </section>
+
     <button id="generateButton" type="button">Generate New Challenge</button>
     <p class="tip">Tip: Lock any element you want to keep, then generate again. Press the space bar for another challenge.</p>
   </main>
@@ -627,6 +636,99 @@
       "Two people speak politely while threatening each other."
     ];
 
+
+    // Suggested prose registers: audience, genre, medium, social context, and tonal stance.
+    const registers = [
+      { type: "Academic", example: "Use precise terminology, explicit logic, and a measured analytical tone." },
+      { type: "Accessible nonfiction", example: "Explain the idea clearly for an intelligent general reader without flattening its complexity." },
+      { type: "Advertisement", example: "Make the sentence vivid, persuasive, benefit-focused, and immediately memorable." },
+      { type: "Adventure fiction", example: "Prioritize motion, danger, discovery, and a clear sense of forward momentum." },
+      { type: "Aphoristic", example: "Compress the thought into a concise, quotable statement that feels broadly true." },
+      { type: "Apocalyptic", example: "Write with finality, vast consequence, dread, or revelation at the edge of collapse." },
+      { type: "Argumentative essay", example: "Advance a clear claim while anticipating resistance or sharpening a distinction." },
+      { type: "Autobiographical", example: "Write from lived experience with reflective distance and personal specificity." },
+      { type: "Biblical", example: "Use elevated cadence, parallel clauses, elemental imagery, and moral or cosmic weight." },
+      { type: "Bureaucratic", example: "Use impersonal, procedural language shaped by policy, classification, and institutional caution." },
+      { type: "Business report", example: "State the relevant fact, consequence, and decision with economy and operational clarity." },
+      { type: "Children’s book", example: "Use concrete language, rhythmic clarity, emotional directness, and an image a child can grasp." },
+      { type: "Chronicle", example: "Record the occurrence plainly, as part of a larger sequence of public events." },
+      { type: "Clinical", example: "Describe observable facts precisely while minimizing emotional interpretation." },
+      { type: "Comedy", example: "Build expectation, escalation, incongruity, or reversal toward a comic payoff." },
+      { type: "Confessional", example: "Write with exposed self-awareness, emotional risk, and little protective distance." },
+      { type: "Conversational", example: "Make it sound natural when spoken aloud, using contractions and an unforced rhythm." },
+      { type: "Cozy fiction", example: "Emphasize comfort, familiarity, community, and manageable rather than overwhelming stakes." },
+      { type: "Crime fiction", example: "Favor concrete evidence, motive, suspicion, and the pressure of concealed information." },
+      { type: "Critical theory", example: "Interrogate power, systems, assumptions, and the language used to make them appear natural." },
+      { type: "Cyberpunk", example: "Combine technological density, urban pressure, bodily vulnerability, and institutional control." },
+      { type: "Dark comedy", example: "Treat pain, failure, or catastrophe with controlled irony and unsettling humor." },
+      { type: "Diary entry", example: "Write privately and immediately, as though preserving what the day felt like before it changes." },
+      { type: "Diplomatic", example: "Convey disagreement or warning through tact, restraint, and carefully managed implication." },
+      { type: "Documentary narration", example: "Present a clear factual image while suggesting the larger human significance." },
+      { type: "Dreamlike", example: "Use fluid association, uncertain causality, and imagery that feels emotionally true rather than literal." },
+      { type: "Elegiac", example: "Write with tenderness toward something lost, vanishing, or already beyond recovery." },
+      { type: "Epic", example: "Give the action heroic scale, ceremonial weight, and consequences larger than one life." },
+      { type: "Epistolary", example: "Address an absent reader directly, allowing relationship and circumstance to shape the sentence." },
+      { type: "Erotic", example: "Emphasize anticipation, attention, sensory charge, and the meaning carried by physical proximity." },
+      { type: "Fairy tale", example: "Use archetypal clarity, repetition, enchantment, danger, and the logic of transformation." },
+      { type: "Folkloric", example: "Make the sentence feel inherited, communal, cautionary, and polished by repeated telling." },
+      { type: "Formal", example: "Use complete, controlled syntax and a respectful distance from the reader." },
+      { type: "Gothic", example: "Emphasize atmosphere, decay, inheritance, secrecy, confinement, and psychological unease." },
+      { type: "Hard-boiled", example: "Use terse observation, moral fatigue, concrete detail, and unsentimental judgment." },
+      { type: "Historical fiction", example: "Ground the sentence in period-specific material reality without turning it into exposition." },
+      { type: "Horror", example: "Create dread through implication, violated normality, bodily vulnerability, or delayed recognition." },
+      { type: "Instructional", example: "Guide the reader through an action in an exact, usable, and logically ordered way." },
+      { type: "Intimate", example: "Write as though speaking to one trusted person at close emotional range." },
+      { type: "Journalistic", example: "Lead with the most consequential fact, then supply concrete context without ornament." },
+      { type: "Legal", example: "Define terms and relationships precisely, leaving as little room for ambiguity as possible." },
+      { type: "Legendary", example: "Present the subject as larger than ordinary history, shaped by memory and repeated retelling." },
+      { type: "Literary", example: "Let syntax, image, implication, and ambiguity carry as much meaning as the stated event." },
+      { type: "Liturgical", example: "Use repetition, invocation, communal cadence, and language suited to ritual utterance." },
+      { type: "Love letter", example: "Address the beloved with specificity, vulnerability, attention, and emotional consequence." },
+      { type: "Magical realism", example: "Present the impossible with the same calm authority used for ordinary domestic facts." },
+      { type: "Manifesto", example: "Write with declarative urgency, collective purpose, and refusal of the existing order." },
+      { type: "Meditative", example: "Move patiently through perception and thought, allowing attention itself to become the subject." },
+      { type: "Memoir", example: "Join a concrete remembered moment to the meaning it acquired later." },
+      { type: "Military", example: "Favor mission, terrain, timing, hierarchy, risk, and the practical consequences of action." },
+      { type: "Minimalist", example: "Use few words, concrete details, and strategic omission; trust the reader to infer the rest." },
+      { type: "Mock-heroic", example: "Describe a trivial event with the elevated scale and ceremony of an epic." },
+      { type: "Mythic", example: "Frame the event through archetype, threshold, sacrifice, transformation, or return." },
+      { type: "Nature writing", example: "Observe the nonhuman world precisely while connecting physical detail to time, place, or consciousness." },
+      { type: "Noir", example: "Use shadowed atmosphere, compromised motives, fatalism, and sharp sensory detail." },
+      { type: "Oral storytelling", example: "Shape the sentence for breath, emphasis, repetition, and the presence of a listening audience." },
+      { type: "Pastoral", example: "Emphasize rural life, seasonal rhythm, labor, landscape, and the tension between simplicity and reality." },
+      { type: "Philosophical", example: "Use the specific event to test a larger question about knowledge, value, being, or action." },
+      { type: "Plainspoken", example: "Use familiar words and direct syntax while preserving emotional and intellectual force." },
+      { type: "Poetic prose", example: "Heighten rhythm, image, sound, and compression without breaking into verse." },
+      { type: "Police procedural", example: "Emphasize sequence, evidence, protocol, observation, and what remains unverified." },
+      { type: "Political speech", example: "Use memorable phrasing, collective identity, contrast, and a clear appeal to action or belief." },
+      { type: "Prayer", example: "Address a divine or absent presence through petition, gratitude, confession, or surrender." },
+      { type: "Prophetic", example: "Speak with visionary certainty about judgment, consequence, warning, or transformation." },
+      { type: "Psychological realism", example: "Track subtle motive, contradiction, perception, and the mind’s effort to protect itself." },
+      { type: "Public-facing essay", example: "Combine a distinct personal voice with enough context for readers outside the subject." },
+      { type: "Romance", example: "Center emotional recognition, attraction, vulnerability, and the consequences of mutual attention." },
+      { type: "Satirical", example: "Expose folly or hypocrisy through exaggeration, imitation, irony, or controlled absurdity." },
+      { type: "Scholarly", example: "Qualify claims carefully, distinguish evidence from inference, and situate the idea within a field." },
+      { type: "Science fiction", example: "Make one altered technology, institution, environment, or assumption reshape ordinary human behavior." },
+      { type: "Scientific", example: "State observations, mechanisms, and limits precisely without implying more than the evidence supports." },
+      { type: "Scriptural", example: "Use compressed narrative, parallelism, symbolic action, and an authoritative ceremonial cadence." },
+      { type: "Social media", example: "Make the sentence immediate, legible, voice-driven, and strong enough to stand without context." },
+      { type: "Soliloquy", example: "Let private thought unfold aloud through self-questioning, contradiction, and emotional discovery." },
+      { type: "Southern Gothic", example: "Combine regional specificity, family history, social decay, grotesquerie, and moral unease." },
+      { type: "Speculative nonfiction", example: "Extend present evidence into a plausible future while clearly signaling uncertainty and consequence." },
+      { type: "Spiritual reflection", example: "Connect an ordinary experience to transcendence, conscience, meaning, or inner transformation." },
+      { type: "Standard prose", example: "Write clear, natural, flexible contemporary prose without pushing toward a specialized genre." },
+      { type: "Stream of consciousness", example: "Follow the mind’s associations, interruptions, sensations, and incomplete transitions in real time." },
+      { type: "Surreal", example: "Combine logically incompatible images with confidence, allowing dream logic to govern the sentence." },
+      { type: "Technical", example: "Use domain-specific precision, explicit relationships, and terminology appropriate to an expert reader." },
+      { type: "Testimony", example: "State what was witnessed or endured with moral seriousness and concrete personal authority." },
+      { type: "Thriller", example: "Increase urgency through compressed time, withheld information, danger, and consequential choice." },
+      { type: "Tragic", example: "Let the sentence carry irreversible consequence, recognition, loss, or the cost of a fatal choice." },
+      { type: "Travel writing", example: "Join sensory place-description to movement, cultural encounter, and the observer’s changing perspective." },
+      { type: "Urban", example: "Use density, infrastructure, crowds, commerce, noise, and contested public space as active forces." },
+      { type: "Workplace", example: "Ground the sentence in task, hierarchy, competence, friction, and the social language of labor." },
+      { type: "Young adult", example: "Use immediate emotional stakes, clear momentum, identity pressure, and a voice close to the character’s experience." }
+    ];
+
     function randomItem(items) {
       return items[Math.floor(Math.random() * items.length)];
     }
@@ -652,6 +754,12 @@
 
       if (!document.getElementById("promptLock").checked) {
         document.getElementById("trainingPrompt").textContent = randomItem(prompts);
+      }
+
+      if (!document.getElementById("registerLock").checked) {
+        const register = randomItem(registers);
+        document.getElementById("registerType").textContent = register.type;
+        document.getElementById("registerExample").textContent = register.example;
       }
     }
 
