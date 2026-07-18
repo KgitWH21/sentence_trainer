@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sentence Trainer</title>
-  <link rel="icon" type="image/png" href="sentence_trainer_fav.png">
-  <link rel="apple-touch-icon" href="sentence_trainer_fav.png">
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -70,7 +68,16 @@
       color: #666;
     }
 
-    .lock-control {
+    .card-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .lock-control,
+    .include-control {
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -80,7 +87,24 @@
       user-select: none;
     }
 
-    .lock-control input { margin: 0; }
+    .lock-control input,
+    .include-control input { margin: 0; }
+
+    .card,
+    .prompt-card {
+      transition: opacity 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .is-inactive {
+      opacity: 0.42;
+      background: #eeeeee;
+      border-color: #cfcfcf;
+    }
+
+    .is-inactive .type,
+    .is-inactive .example {
+      text-decoration: none;
+    }
 
     .type {
       margin: 0 0 10px;
@@ -131,53 +155,80 @@
     <p class="subtitle">Generate a sentence structure challenge and write one sentence that follows it.</p>
 
     <section class="grid" aria-live="polite">
-      <article class="card">
+      <article class="card challenge-card" id="starterCard">
         <div class="card-header">
           <p class="label">Sentence starter</p>
-          <label class="lock-control"><input id="starterLock" type="checkbox"> Lock</label>
+          <div class="card-controls">
+            <label class="include-control"><input id="starterInclude" type="checkbox"> Use</label>
+            <label class="lock-control"><input id="starterLock" type="checkbox"> Lock</label>
+          </div>
         </div>
         <p class="type" id="starterType"></p>
         <p class="example" id="starterExample"></p>
       </article>
 
-      <article class="card">
+      <article class="card challenge-card" id="deviceCard">
         <div class="card-header">
           <p class="label">Craft device / construction</p>
-          <label class="lock-control"><input id="deviceLock" type="checkbox"> Lock</label>
+          <div class="card-controls">
+            <label class="include-control"><input id="deviceInclude" type="checkbox"> Use</label>
+            <label class="lock-control"><input id="deviceLock" type="checkbox"> Lock</label>
+          </div>
         </div>
         <p class="type" id="deviceType"></p>
         <p class="example" id="deviceExample"></p>
       </article>
 
-      <article class="card">
+      <article class="card challenge-card" id="enderCard">
         <div class="card-header">
           <p class="label">Sentence ender</p>
-          <label class="lock-control"><input id="enderLock" type="checkbox"> Lock</label>
+          <div class="card-controls">
+            <label class="include-control"><input id="enderInclude" type="checkbox"> Use</label>
+            <label class="lock-control"><input id="enderLock" type="checkbox"> Lock</label>
+          </div>
         </div>
         <p class="type" id="enderType"></p>
         <p class="example" id="enderExample"></p>
       </article>
     </section>
 
-    <section class="prompt-card" aria-live="polite">
+    <section class="prompt-card challenge-card" id="promptCard" aria-live="polite">
       <div class="card-header">
         <p class="label">Training idea</p>
-        <label class="lock-control"><input id="promptLock" type="checkbox"> Lock</label>
+        <div class="card-controls">
+          <label class="include-control"><input id="promptInclude" type="checkbox"> Use</label>
+          <label class="lock-control"><input id="promptLock" type="checkbox"> Lock</label>
+        </div>
       </div>
       <p class="example" id="trainingPrompt"></p>
     </section>
 
-    <section class="prompt-card" aria-live="polite">
+    <section class="prompt-card challenge-card" id="registerCard" aria-live="polite">
       <div class="card-header">
         <p class="label">Suggested register</p>
-        <label class="lock-control"><input id="registerLock" type="checkbox"> Lock</label>
+        <div class="card-controls">
+          <label class="include-control"><input id="registerInclude" type="checkbox"> Use</label>
+          <label class="lock-control"><input id="registerLock" type="checkbox"> Lock</label>
+        </div>
       </div>
       <p class="type" id="registerType"></p>
       <p class="example" id="registerExample"></p>
     </section>
 
+    <section class="prompt-card challenge-card" id="enhancementCard" aria-live="polite">
+      <div class="card-header">
+        <p class="label">Optional wild-card insertion</p>
+        <div class="card-controls">
+          <label class="include-control"><input id="enhancementInclude" type="checkbox"> Use</label>
+          <label class="lock-control"><input id="enhancementLock" type="checkbox"> Lock</label>
+        </div>
+      </div>
+      <p class="type" id="enhancementType"></p>
+      <p class="example" id="enhancementExample"></p>
+    </section>
+
     <button id="generateButton" type="button">Generate New Challenge</button>
-    <p class="tip">Tip: Lock any element you want to keep, then generate again. Press the space bar for another challenge.</p>
+    <p class="tip">Tip: Each roll activates a varied set of constraints. Check Use to restore a grayed-out card, or Lock to preserve a card across rolls. Press the space bar for another challenge.</p>
   </main>
 
   <script>
@@ -639,6 +690,386 @@
     ];
 
 
+    // One-word wild cards. Each entry supplies a single word to work naturally into the sentence.
+    const sentenceEnhancements = [
+      { type: "Acronym", example: "Insert one acronym that the sentence makes legible through context." },
+      { type: "Alien word", example: "Invent one extraterrestrial word whose phonetics suggest body, environment, or worldview." },
+      { type: "Ancient or historical word: Akkadian", example: "Insert one attested or responsibly reconstructed word from Akkadian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Ancient Egyptian", example: "Insert one attested or responsibly reconstructed word from Ancient Egyptian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Ancient Greek", example: "Insert one attested or responsibly reconstructed word from Ancient Greek. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Anglo-Norman", example: "Insert one attested or responsibly reconstructed word from Anglo-Norman. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Avestan", example: "Insert one attested or responsibly reconstructed word from Avestan. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Biblical Hebrew", example: "Insert one attested or responsibly reconstructed word from Biblical Hebrew. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Classical Arabic", example: "Insert one attested or responsibly reconstructed word from Classical Arabic. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Classical Armenian", example: "Insert one attested or responsibly reconstructed word from Classical Armenian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Classical Chinese", example: "Insert one attested or responsibly reconstructed word from Classical Chinese. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Classical Japanese", example: "Insert one attested or responsibly reconstructed word from Classical Japanese. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Classical Maya", example: "Insert one attested or responsibly reconstructed word from Classical Maya. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Classical Nahuatl", example: "Insert one attested or responsibly reconstructed word from Classical Nahuatl. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Coptic", example: "Insert one attested or responsibly reconstructed word from Coptic. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Elamite", example: "Insert one attested or responsibly reconstructed word from Elamite. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Etruscan", example: "Insert one attested or responsibly reconstructed word from Etruscan. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Gaulish", example: "Insert one attested or responsibly reconstructed word from Gaulish. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Geʽez", example: "Insert one attested or responsibly reconstructed word from Geʽez. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Gothic", example: "Insert one attested or responsibly reconstructed word from Gothic. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Hattic", example: "Insert one attested or responsibly reconstructed word from Hattic. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Hittite", example: "Insert one attested or responsibly reconstructed word from Hittite. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Hurrian", example: "Insert one attested or responsibly reconstructed word from Hurrian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Koine Greek", example: "Insert one attested or responsibly reconstructed word from Koine Greek. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Latin", example: "Insert one attested or responsibly reconstructed word from Latin. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Luwian", example: "Insert one attested or responsibly reconstructed word from Luwian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Middle English", example: "Insert one attested or responsibly reconstructed word from Middle English. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Middle French", example: "Insert one attested or responsibly reconstructed word from Middle French. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Middle High German", example: "Insert one attested or responsibly reconstructed word from Middle High German. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Mycenaean Greek", example: "Insert one attested or responsibly reconstructed word from Mycenaean Greek. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Church Slavonic", example: "Insert one attested or responsibly reconstructed word from Old Church Slavonic. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old English", example: "Insert one attested or responsibly reconstructed word from Old English. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old French", example: "Insert one attested or responsibly reconstructed word from Old French. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old High German", example: "Insert one attested or responsibly reconstructed word from Old High German. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Irish", example: "Insert one attested or responsibly reconstructed word from Old Irish. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Japanese", example: "Insert one attested or responsibly reconstructed word from Old Japanese. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Norse", example: "Insert one attested or responsibly reconstructed word from Old Norse. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Persian", example: "Insert one attested or responsibly reconstructed word from Old Persian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Prussian", example: "Insert one attested or responsibly reconstructed word from Old Prussian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Old Saxon", example: "Insert one attested or responsibly reconstructed word from Old Saxon. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Pali", example: "Insert one attested or responsibly reconstructed word from Pali. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Phoenician", example: "Insert one attested or responsibly reconstructed word from Phoenician. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Proto-Germanic reconstruction", example: "Insert one attested or responsibly reconstructed word from Proto-Germanic reconstruction. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Proto-Indo-European reconstruction", example: "Insert one attested or responsibly reconstructed word from Proto-Indo-European reconstruction. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Sanskrit", example: "Insert one attested or responsibly reconstructed word from Sanskrit. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Sumerian", example: "Insert one attested or responsibly reconstructed word from Sumerian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Syriac", example: "Insert one attested or responsibly reconstructed word from Syriac. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Tocharian", example: "Insert one attested or responsibly reconstructed word from Tocharian. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Ugaritic", example: "Insert one attested or responsibly reconstructed word from Ugaritic. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Ancient or historical word: Vulgar Latin", example: "Insert one attested or responsibly reconstructed word from Vulgar Latin. Use it as ritual, scholarship, ancestry, inscription, memory, or verbal fossil." },
+      { type: "Animal name", example: "Insert one animal name as literal presence, comparison, omen, nickname, or inherited symbol." },
+      { type: "Archaic English word", example: "Insert one genuinely archaic English word and make its age enrich the voice rather than parody it." },
+      { type: "Architectural term", example: "Insert one architectural word and let built space organize the sentence." },
+      { type: "Astrological term", example: "Insert one astrological word and clarify whether the sentence believes, doubts, exploits, or merely notices it." },
+      { type: "Aviation term", example: "Insert one aviation word as procedure, memory, danger, or metaphor of control." },
+      { type: "Body-part word", example: "Insert one anatomical word and make the sentence physically felt." },
+      { type: "Borrowed word used incorrectly", example: "Have a character use one borrowed word slightly wrong, revealing aspiration, confusion, or social performance." },
+      { type: "Brand name", example: "Insert one brand name as social signal, period detail, aspiration, embarrassment, or debris." },
+      { type: "Bureaucratic term", example: "Insert one bureaucratic word whose sterile tone clashes with lived experience." },
+      { type: "Chess term", example: "Insert one chess word—check, gambit, fork, mate—and avoid the most predictable metaphor." },
+      { type: "Child-coined word", example: "Insert one word invented by a child and make its private logic immediately graspable." },
+      { type: "Color word", example: "Insert one precise or unusual color word and make it perform more than visual description." },
+      { type: "Computing insertion: AI-model vocabulary", example: "Insert one word or token from AI-model vocabulary. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Algorithm term", example: "Insert one word or token from Algorithm term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: API term", example: "Insert one word or token from API term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Command-line command", example: "Insert one word or token from Command-line command. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Compiler error", example: "Insert one word or token from Compiler error. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Cybersecurity term", example: "Insert one word or token from Cybersecurity term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Database term", example: "Insert one word or token from Database term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Debugging term", example: "Insert one word or token from Debugging term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: File extension", example: "Insert one word or token from File extension. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Git command", example: "Insert one word or token from Git command. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: HTTP status", example: "Insert one word or token from HTTP status. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Linux command", example: "Insert one word or token from Linux command. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Machine-learning term", example: "Insert one word or token from Machine-learning term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Networking term", example: "Insert one word or token from Networking term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Regular-expression token", example: "Insert one word or token from Regular-expression token. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Robotics term", example: "Insert one word or token from Robotics term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Unicode name", example: "Insert one word or token from Unicode name. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Version-control term", example: "Insert one word or token from Version-control term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Computing insertion: Web-development term", example: "Insert one word or token from Web-development term. The technical language should sharpen character, action, analogy, or atmosphere." },
+      { type: "Constructed-language word: Blissymbolics", example: "Insert one word from Blissymbolics. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Esperanto", example: "Insert one word from Esperanto. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Ido", example: "Insert one word from Ido. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Interlingua", example: "Insert one word from Interlingua. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Lojban", example: "Insert one word from Lojban. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Láadan", example: "Insert one word from Láadan. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Solresol", example: "Insert one word from Solresol. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Toki Pona", example: "Insert one word from Toki Pona. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Constructed-language word: Volapük", example: "Insert one word from Volapük. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Corporate jargon", example: "Insert one corporate buzzword and use it sincerely, comically, defensively, or ominously." },
+      { type: "Dialect word", example: "Insert one regional dialect word appropriate to a place, speaker, and social context." },
+      { type: "Divine name", example: "Insert one name or title for a god, spirit, saint, demon, or cosmic intelligence." },
+      { type: "Dream word", example: "Insert one word that feels imported from a dream: specific, unexplained, and emotionally certain." },
+      { type: "Emoji name", example: "Insert the spoken name of one emoji, such as “skull” or “sparkles,” as contemporary verbal shorthand." },
+      { type: "Expletive", example: "Insert one expletive. Decide whether it erupts as anger, pain, comedy, prayer, intimacy, or verbal punctuation." },
+      { type: "Family-only word", example: "Insert one household word whose meaning belongs to a particular family history." },
+      { type: "Fashion term", example: "Insert one clothing or fashion word that reveals body, class, era, or performance." },
+      { type: "Fictional lexicon: Atlantean", example: "Insert one recognizable or newly coined word in the style of Atlantean. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Belter Creole", example: "Insert one recognizable or newly coined word in the style of Belter Creole. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Black Speech", example: "Insert one recognizable or newly coined word in the style of Black Speech. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Chakobsa", example: "Insert one recognizable or newly coined word in the style of Chakobsa. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Cityspeak", example: "Insert one recognizable or newly coined word in the style of Cityspeak. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Dovahzul/Dragon Language", example: "Insert one recognizable or newly coined word in the style of Dovahzul/Dragon Language. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Enochian as fictional occult register", example: "Insert one recognizable or newly coined word in the style of Enochian as fictional occult register. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Ewokese", example: "Insert one recognizable or newly coined word in the style of Ewokese. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Fremen terminology", example: "Insert one recognizable or newly coined word in the style of Fremen terminology. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Gallifreyan", example: "Insert one recognizable or newly coined word in the style of Gallifreyan. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Huttese", example: "Insert one recognizable or newly coined word in the style of Huttese. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Kryptonian", example: "Insert one recognizable or newly coined word in the style of Kryptonian. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Lapine", example: "Insert one recognizable or newly coined word in the style of Lapine. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Minionese", example: "Insert one recognizable or newly coined word in the style of Minionese. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Nadsat", example: "Insert one recognizable or newly coined word in the style of Nadsat. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Newspeak", example: "Insert one recognizable or newly coined word in the style of Newspeak. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Orcish", example: "Insert one recognizable or newly coined word in the style of Orcish. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Parseltongue", example: "Insert one recognizable or newly coined word in the style of Parseltongue. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Simlish", example: "Insert one recognizable or newly coined word in the style of Simlish. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Sith terminology", example: "Insert one recognizable or newly coined word in the style of Sith terminology. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Star Trek Federation Standard jargon", example: "Insert one recognizable or newly coined word in the style of Star Trek Federation Standard jargon. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Star Wars Aurebesh-era slang", example: "Insert one recognizable or newly coined word in the style of Star Wars Aurebesh-era slang. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Thalassian", example: "Insert one recognizable or newly coined word in the style of Thalassian. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: The Dark Tongue", example: "Insert one recognizable or newly coined word in the style of The Dark Tongue. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: The Old Tongue", example: "Insert one recognizable or newly coined word in the style of The Old Tongue. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional lexicon: Vulcan", example: "Insert one recognizable or newly coined word in the style of Vulcan. It should reveal world, tribe, power, technology, or belief." },
+      { type: "Fictional-language word: Dothraki", example: "Insert one word from Dothraki. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Fictional-language word: High Valyrian", example: "Insert one word from High Valyrian. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Fictional-language word: Klingon", example: "Insert one word from Klingon. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Fictional-language word: Na’vi", example: "Insert one word from Na’vi. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Fictional-language word: Quenya", example: "Insert one word from Quenya. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Fictional-language word: Sindarin", example: "Insert one word from Sindarin. Make it function as living language rather than trivia or a decorative Easter egg." },
+      { type: "Filler word", example: "Insert one filler word—well, like, anyway, actually—and make the hesitation or redirection intentional." },
+      { type: "Food word", example: "Insert one specific food word and make taste, class, home, culture, or memory enter the sentence." },
+      { type: "Foreign word: Afrikaans", example: "Insert one word from Afrikaans. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Albanian", example: "Insert one word from Albanian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Amharic", example: "Insert one word from Amharic. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Arabic", example: "Insert one word from Arabic. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Armenian", example: "Insert one word from Armenian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Assamese", example: "Insert one word from Assamese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Aymara", example: "Insert one word from Aymara. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Azerbaijani", example: "Insert one word from Azerbaijani. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Bambara", example: "Insert one word from Bambara. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Basque", example: "Insert one word from Basque. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Belarusian", example: "Insert one word from Belarusian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Bengali", example: "Insert one word from Bengali. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Bosnian", example: "Insert one word from Bosnian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Breton", example: "Insert one word from Breton. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Bulgarian", example: "Insert one word from Bulgarian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Burmese", example: "Insert one word from Burmese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Catalan", example: "Insert one word from Catalan. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Cebuano", example: "Insert one word from Cebuano. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Chechen", example: "Insert one word from Chechen. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Cherokee", example: "Insert one word from Cherokee. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Chichewa", example: "Insert one word from Chichewa. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Chinese: Cantonese", example: "Insert one word from Chinese: Cantonese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Chinese: Mandarin", example: "Insert one word from Chinese: Mandarin. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Corsican", example: "Insert one word from Corsican. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Croatian", example: "Insert one word from Croatian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Czech", example: "Insert one word from Czech. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Danish", example: "Insert one word from Danish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Dari", example: "Insert one word from Dari. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Dhivehi", example: "Insert one word from Dhivehi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Dutch", example: "Insert one word from Dutch. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Dzongkha", example: "Insert one word from Dzongkha. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: English", example: "Insert one word from English. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Esperanto", example: "Insert one word from Esperanto. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Estonian", example: "Insert one word from Estonian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Ewe", example: "Insert one word from Ewe. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Fijian", example: "Insert one word from Fijian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Filipino/Tagalog", example: "Insert one word from Filipino/Tagalog. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Finnish", example: "Insert one word from Finnish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: French", example: "Insert one word from French. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Frisian", example: "Insert one word from Frisian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Galician", example: "Insert one word from Galician. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Georgian", example: "Insert one word from Georgian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: German", example: "Insert one word from German. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Greek: Modern", example: "Insert one word from Greek: Modern. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Greenlandic", example: "Insert one word from Greenlandic. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Guaraní", example: "Insert one word from Guaraní. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Gujarati", example: "Insert one word from Gujarati. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Haitian Creole", example: "Insert one word from Haitian Creole. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Hausa", example: "Insert one word from Hausa. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Hawaiian", example: "Insert one word from Hawaiian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Hebrew: Modern", example: "Insert one word from Hebrew: Modern. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Hindi", example: "Insert one word from Hindi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Hmong", example: "Insert one word from Hmong. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Hungarian", example: "Insert one word from Hungarian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Icelandic", example: "Insert one word from Icelandic. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Igbo", example: "Insert one word from Igbo. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Ilocano", example: "Insert one word from Ilocano. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Indonesian", example: "Insert one word from Indonesian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Inuktitut", example: "Insert one word from Inuktitut. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Irish", example: "Insert one word from Irish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Italian", example: "Insert one word from Italian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Japanese", example: "Insert one word from Japanese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Javanese", example: "Insert one word from Javanese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kannada", example: "Insert one word from Kannada. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kazakh", example: "Insert one word from Kazakh. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Khmer", example: "Insert one word from Khmer. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kinyarwanda", example: "Insert one word from Kinyarwanda. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kirundi", example: "Insert one word from Kirundi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Korean", example: "Insert one word from Korean. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kurdish: Kurmanji", example: "Insert one word from Kurdish: Kurmanji. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kurdish: Sorani", example: "Insert one word from Kurdish: Sorani. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Kyrgyz", example: "Insert one word from Kyrgyz. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Lao", example: "Insert one word from Lao. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Latvian", example: "Insert one word from Latvian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Lingala", example: "Insert one word from Lingala. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Lithuanian", example: "Insert one word from Lithuanian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Luganda", example: "Insert one word from Luganda. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Luxembourgish", example: "Insert one word from Luxembourgish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Macedonian", example: "Insert one word from Macedonian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Malagasy", example: "Insert one word from Malagasy. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Malay", example: "Insert one word from Malay. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Malayalam", example: "Insert one word from Malayalam. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Maltese", example: "Insert one word from Maltese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Marathi", example: "Insert one word from Marathi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Mongolian", example: "Insert one word from Mongolian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Māori", example: "Insert one word from Māori. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Navajo", example: "Insert one word from Navajo. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Nepali", example: "Insert one word from Nepali. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Norwegian", example: "Insert one word from Norwegian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Odia", example: "Insert one word from Odia. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Oromo", example: "Insert one word from Oromo. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Pashto", example: "Insert one word from Pashto. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Persian/Farsi", example: "Insert one word from Persian/Farsi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Polish", example: "Insert one word from Polish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Portuguese", example: "Insert one word from Portuguese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Punjabi", example: "Insert one word from Punjabi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Quechua", example: "Insert one word from Quechua. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Romanian", example: "Insert one word from Romanian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Romansh", example: "Insert one word from Romansh. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Russian", example: "Insert one word from Russian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Samoan", example: "Insert one word from Samoan. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Scottish Gaelic", example: "Insert one word from Scottish Gaelic. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Serbian", example: "Insert one word from Serbian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Sesotho", example: "Insert one word from Sesotho. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Shona", example: "Insert one word from Shona. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Sindhi", example: "Insert one word from Sindhi. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Sinhala", example: "Insert one word from Sinhala. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Slovak", example: "Insert one word from Slovak. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Slovenian", example: "Insert one word from Slovenian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Somali", example: "Insert one word from Somali. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Spanish", example: "Insert one word from Spanish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Sundanese", example: "Insert one word from Sundanese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Swahili", example: "Insert one word from Swahili. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Swedish", example: "Insert one word from Swedish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tajik", example: "Insert one word from Tajik. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tamil", example: "Insert one word from Tamil. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tatar", example: "Insert one word from Tatar. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Telugu", example: "Insert one word from Telugu. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Thai", example: "Insert one word from Thai. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tibetan", example: "Insert one word from Tibetan. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tigrinya", example: "Insert one word from Tigrinya. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tongan", example: "Insert one word from Tongan. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tsonga", example: "Insert one word from Tsonga. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Tswana", example: "Insert one word from Tswana. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Turkish", example: "Insert one word from Turkish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Turkmen", example: "Insert one word from Turkmen. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Twi/Akan", example: "Insert one word from Twi/Akan. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Ukrainian", example: "Insert one word from Ukrainian. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Urdu", example: "Insert one word from Urdu. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Uyghur", example: "Insert one word from Uyghur. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Uzbek", example: "Insert one word from Uzbek. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Vietnamese", example: "Insert one word from Vietnamese. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Welsh", example: "Insert one word from Welsh. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Wolof", example: "Insert one word from Wolof. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Xhosa", example: "Insert one word from Xhosa. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Yiddish", example: "Insert one word from Yiddish. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Yoruba", example: "Insert one word from Yoruba. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Foreign word: Zulu", example: "Insert one word from Zulu. Let context, sound, or a nearby clue make its role understandable without stopping to lecture the reader." },
+      { type: "Fragment of dialogue", example: "Insert one isolated spoken word—such as “wait,” “listen,” “please,” “yes,” or “no”—and let it interrupt the syntax." },
+      { type: "Future slang", example: "Invent one single word from a plausible future dialect and make context do the translation." },
+      { type: "Gaming term", example: "Insert one gaming word as literal play, strategic metaphor, generational marker, or private code." },
+      { type: "Honorific", example: "Insert one honorific or title whose use establishes hierarchy, intimacy, irony, or resistance." },
+      { type: "Initialism", example: "Insert one spoken-letter abbreviation and use it as institutional pressure, identity, or shorthand." },
+      { type: "Insult", example: "Insert one single-word insult that reveals more about the speaker than the target." },
+      { type: "Interjection", example: "Insert one interjection—ah, oh, hey, alas, huh—and let it reveal the speaker’s immediate state." },
+      { type: "Internet slang", example: "Insert one piece of internet slang that dates, localizes, or destabilizes the voice." },
+      { type: "Invented profanity", example: "Coin one single-word curse whose sound and implied taboo reveal the culture that uses it." },
+      { type: "Kinship term", example: "Insert one kinship word—mother, cousin, auntie, brother, ancestor—and make the relationship matter." },
+      { type: "Last word of a dying language", example: "Invent or research one final surviving word from a dying language and place emotional pressure on its use." },
+      { type: "Legal term", example: "Insert one legal word and use its cold precision against a human situation." },
+      { type: "Logical operator", example: "Insert one logic word or operator—AND, OR, NOT, XOR—and use it structurally or metaphorically." },
+      { type: "Maritime term", example: "Insert one nautical word as precise object, inherited idiom, or pressure from the sea." },
+      { type: "Mathematical term", example: "Insert one mathematical word—limit, proof, vector, remainder, asymptote—and make it emotionally useful." },
+      { type: "Medical term", example: "Insert one medical word as diagnosis, fear, expertise, euphemism, or bodily fact." },
+      { type: "Mild oath", example: "Insert one mild oath such as “damn,” “hell,” or “bloody,” chosen to match the speaker and setting." },
+      { type: "Military term", example: "Insert one military word as literal jargon, institutional residue, or metaphor under pressure." },
+      { type: "Mineral or element", example: "Insert one mineral, metal, chemical element, or stone and exploit its physical associations." },
+      { type: "Misheard word", example: "Insert one mondegreen or misheard word whose mistake alters meaning." },
+      { type: "Musical term", example: "Insert one musical word—tempo, chord, register, cadence, rest—and let it shape the prose rhythm." },
+      { type: "Mythological name", example: "Insert one mythological name as allusion, comparison, inheritance, or mistaken identity." },
+      { type: "Neologism", example: "Invent one new word whose meaning can be inferred from sound, morphology, and context." },
+      { type: "Number word", example: "Insert one number written as a word and make its exactness consequential." },
+      { type: "Obsolete profession", example: "Insert the name of an obsolete or vanishing occupation and let history briefly surface." },
+      { type: "Onomatopoeia", example: "Insert one sound-word and make it participate in the sentence’s rhythm." },
+      { type: "Password fragment", example: "Insert one password-like word that reveals memory, insecurity, humor, or intimacy." },
+      { type: "Personal name", example: "Insert one proper name at the sentence’s most emotionally weighted position." },
+      { type: "Philosophical term", example: "Insert one philosophical word and anchor the abstraction in a concrete circumstance." },
+      { type: "Place name", example: "Insert one real or invented place name and let its sound carry geography, memory, or threat." },
+      { type: "Plant name", example: "Insert one plant, flower, fungus, or tree name as object, medicine, symbol, or memory." },
+      { type: "Portmanteau", example: "Coin or insert one blended word whose fused meanings create surprise." },
+      { type: "Programming-language token: Assembly", example: "Insert one keyword, operator, method name, literal, or idiom from Assembly. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Bash", example: "Insert one keyword, operator, method name, literal, or idiom from Bash. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: BASIC", example: "Insert one keyword, operator, method name, literal, or idiom from BASIC. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: C", example: "Insert one keyword, operator, method name, literal, or idiom from C. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: C#", example: "Insert one keyword, operator, method name, literal, or idiom from C#. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: C++", example: "Insert one keyword, operator, method name, literal, or idiom from C++. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Clojure", example: "Insert one keyword, operator, method name, literal, or idiom from Clojure. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: COBOL", example: "Insert one keyword, operator, method name, literal, or idiom from COBOL. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: CSS", example: "Insert one keyword, operator, method name, literal, or idiom from CSS. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Dart", example: "Insert one keyword, operator, method name, literal, or idiom from Dart. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Elixir", example: "Insert one keyword, operator, method name, literal, or idiom from Elixir. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Erlang", example: "Insert one keyword, operator, method name, literal, or idiom from Erlang. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Fortran", example: "Insert one keyword, operator, method name, literal, or idiom from Fortran. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Go", example: "Insert one keyword, operator, method name, literal, or idiom from Go. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: GraphQL", example: "Insert one keyword, operator, method name, literal, or idiom from GraphQL. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Haskell", example: "Insert one keyword, operator, method name, literal, or idiom from Haskell. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: HTML", example: "Insert one keyword, operator, method name, literal, or idiom from HTML. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Java", example: "Insert one keyword, operator, method name, literal, or idiom from Java. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: JavaScript", example: "Insert one keyword, operator, method name, literal, or idiom from JavaScript. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Julia", example: "Insert one keyword, operator, method name, literal, or idiom from Julia. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Kotlin", example: "Insert one keyword, operator, method name, literal, or idiom from Kotlin. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Lisp", example: "Insert one keyword, operator, method name, literal, or idiom from Lisp. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Lua", example: "Insert one keyword, operator, method name, literal, or idiom from Lua. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: MATLAB", example: "Insert one keyword, operator, method name, literal, or idiom from MATLAB. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Objective-C", example: "Insert one keyword, operator, method name, literal, or idiom from Objective-C. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Pascal", example: "Insert one keyword, operator, method name, literal, or idiom from Pascal. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Perl", example: "Insert one keyword, operator, method name, literal, or idiom from Perl. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: PHP", example: "Insert one keyword, operator, method name, literal, or idiom from PHP. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: PowerShell", example: "Insert one keyword, operator, method name, literal, or idiom from PowerShell. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Prolog", example: "Insert one keyword, operator, method name, literal, or idiom from Prolog. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Python", example: "Insert one keyword, operator, method name, literal, or idiom from Python. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: R", example: "Insert one keyword, operator, method name, literal, or idiom from R. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Ruby", example: "Insert one keyword, operator, method name, literal, or idiom from Ruby. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Rust", example: "Insert one keyword, operator, method name, literal, or idiom from Rust. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Scala", example: "Insert one keyword, operator, method name, literal, or idiom from Scala. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Scheme", example: "Insert one keyword, operator, method name, literal, or idiom from Scheme. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Scratch", example: "Insert one keyword, operator, method name, literal, or idiom from Scratch. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Smalltalk", example: "Insert one keyword, operator, method name, literal, or idiom from Smalltalk. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Solidity", example: "Insert one keyword, operator, method name, literal, or idiom from Solidity. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: SQL", example: "Insert one keyword, operator, method name, literal, or idiom from SQL. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: Swift", example: "Insert one keyword, operator, method name, literal, or idiom from Swift. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: TypeScript", example: "Insert one keyword, operator, method name, literal, or idiom from TypeScript. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: WebAssembly", example: "Insert one keyword, operator, method name, literal, or idiom from WebAssembly. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: XML", example: "Insert one keyword, operator, method name, literal, or idiom from XML. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Programming-language token: YAML", example: "Insert one keyword, operator, method name, literal, or idiom from YAML. Make it work metaphorically, literally, or as character-specific jargon." },
+      { type: "Psychological term", example: "Insert one psychological word as self-understanding, misdiagnosis, manipulation, or professional speech." },
+      { type: "Punctuation name", example: "Insert the name of one punctuation mark—semicolon, ellipsis, em dash—and make it literal or metaphorical." },
+      { type: "Radio call sign", example: "Insert one call sign and let it compress identity into a single charged word." },
+      { type: "Religious term", example: "Insert one sacred, liturgical, or theological word without flattening it into generic solemnity." },
+      { type: "Revived-language word: Cornish", example: "Insert one word connected to Cornish. Let the sentence carry a faint sense of recovery, survival, or cultural return." },
+      { type: "Revived-language word: Hebrew revival-era coinage", example: "Insert one word connected to Hebrew revival-era coinage. Let the sentence carry a faint sense of recovery, survival, or cultural return." },
+      { type: "Revived-language word: Livonian", example: "Insert one word connected to Livonian. Let the sentence carry a faint sense of recovery, survival, or cultural return." },
+      { type: "Revived-language word: Manx", example: "Insert one word connected to Manx. Let the sentence carry a faint sense of recovery, survival, or cultural return." },
+      { type: "Revived-language word: Māori revitalization term", example: "Insert one word connected to Māori revitalization term. Let the sentence carry a faint sense of recovery, survival, or cultural return." },
+      { type: "Revived-language word: Wampanoag revitalization term", example: "Insert one word connected to Wampanoag revitalization term. Let the sentence carry a faint sense of recovery, survival, or cultural return." },
+      { type: "Ritual word", example: "Insert one ceremonial word that changes the action from routine to rite." },
+      { type: "Scientific term", example: "Insert one scientific word and make its exactness illuminate rather than merely decorate." },
+      { type: "Secret code word", example: "Insert one code word whose ordinary surface hides a second meaning." },
+      { type: "Signed-language insertion: American Sign Language gloss", example: "Insert one conventional written gloss associated with American Sign Language gloss, treating it as a compact visual or cultural interruption." },
+      { type: "Signed-language insertion: British Sign Language gloss", example: "Insert one conventional written gloss associated with British Sign Language gloss, treating it as a compact visual or cultural interruption." },
+      { type: "Signed-language insertion: French Sign Language gloss", example: "Insert one conventional written gloss associated with French Sign Language gloss, treating it as a compact visual or cultural interruption." },
+      { type: "Signed-language insertion: International Sign gloss", example: "Insert one conventional written gloss associated with International Sign gloss, treating it as a compact visual or cultural interruption." },
+      { type: "Signed-language insertion: Japanese Sign Language gloss", example: "Insert one conventional written gloss associated with Japanese Sign Language gloss, treating it as a compact visual or cultural interruption." },
+      { type: "Single letter", example: "Insert one isolated letter whose meaning comes from a grade, blood type, route, variable, or private code." },
+      { type: "Sound-effect caption", example: "Insert one comic-book-style sound effect and make the prose absorb its force." },
+      { type: "Spaceflight term", example: "Insert one astronautical word and connect the cosmic scale to a human-scale consequence." },
+      { type: "Sports term", example: "Insert one sports word as action, comparison, ritual, or social belonging." },
+      { type: "Stage direction", example: "Insert one one-word dramatic direction—pause, exits, whispers—and blur narration with performance." },
+      { type: "Taboo word", example: "Insert one socially forbidden or contextually dangerous word without using a slur; make the risk itself meaningful." },
+      { type: "Tarot term", example: "Insert one tarot card or divinatory word as object, belief, coincidence, or manipulation." },
+      { type: "Term of endearment", example: "Insert one affectionate form of address. It may be sincere, manipulative, habitual, mournful, or ironic." },
+      { type: "Typographical symbol", example: "Insert one symbol name—ampersand, asterisk, tilde, hash—and give it narrative purpose." },
+      { type: "Untranslatable concept", example: "Insert one culturally specific concept often described as “untranslatable,” but let the sentence demonstrate rather than define it." },
+      { type: "Weather word", example: "Insert one weather term that also changes the emotional climate of the sentence." }
+    ];
+
     // Suggested prose registers: audience, genre, medium, social context, and tonal stance.
     const registers = [
       { type: "Academic", example: "Use precise terminology, explicit logic, and a measured analytical tone." },
@@ -735,35 +1166,86 @@
       return items[Math.floor(Math.random() * items.length)];
     }
 
+    const elements = {
+      starter: { card: "starterCard", include: "starterInclude", lock: "starterLock", chance: 0.72 },
+      device: { card: "deviceCard", include: "deviceInclude", lock: "deviceLock", chance: 0.86 },
+      ender: { card: "enderCard", include: "enderInclude", lock: "enderLock", chance: 0.72 },
+      prompt: { card: "promptCard", include: "promptInclude", lock: "promptLock", chance: 0.94 },
+      register: { card: "registerCard", include: "registerInclude", lock: "registerLock", chance: 0.55 },
+      enhancement: { card: "enhancementCard", include: "enhancementInclude", lock: "enhancementLock", chance: 0.5 }
+    };
+
+    function setActive(key, active) {
+      const config = elements[key];
+      const checkbox = document.getElementById(config.include);
+      const card = document.getElementById(config.card);
+      checkbox.checked = active;
+      card.classList.toggle("is-inactive", !active);
+      card.setAttribute("aria-disabled", String(!active));
+    }
+
+    function isLocked(key) {
+      return document.getElementById(elements[key].lock).checked;
+    }
+
+    function randomizeActiveStates() {
+      Object.entries(elements).forEach(([key, config]) => {
+        if (!isLocked(key)) {
+          setActive(key, Math.random() < config.chance);
+        }
+      });
+
+      // A challenge should always retain a subject and at least one formal constraint.
+      if (!["starter", "device", "ender"].some((key) => document.getElementById(elements[key].include).checked)) {
+        setActive(randomItem(["starter", "device", "ender"]), true);
+      }
+      if (!document.getElementById(elements.prompt.include).checked) {
+        setActive("prompt", true);
+      }
+    }
+
     function generateChallenge() {
-      if (!document.getElementById("starterLock").checked) {
+      randomizeActiveStates();
+
+      if (!isLocked("starter")) {
         const starter = randomItem(starters);
         document.getElementById("starterType").textContent = starter.type;
         document.getElementById("starterExample").textContent = starter.example;
       }
 
-      if (!document.getElementById("deviceLock").checked) {
+      if (!isLocked("device")) {
         const device = randomItem(craftDevices);
         document.getElementById("deviceType").textContent = device.type;
         document.getElementById("deviceExample").textContent = device.example;
       }
 
-      if (!document.getElementById("enderLock").checked) {
+      if (!isLocked("ender")) {
         const ender = randomItem(enders);
         document.getElementById("enderType").textContent = ender.type;
         document.getElementById("enderExample").textContent = ender.example;
       }
 
-      if (!document.getElementById("promptLock").checked) {
+      if (!isLocked("prompt")) {
         document.getElementById("trainingPrompt").textContent = randomItem(prompts);
       }
 
-      if (!document.getElementById("registerLock").checked) {
+      if (!isLocked("register")) {
         const register = randomItem(registers);
         document.getElementById("registerType").textContent = register.type;
         document.getElementById("registerExample").textContent = register.example;
       }
+
+      if (!isLocked("enhancement")) {
+        const enhancement = randomItem(sentenceEnhancements);
+        document.getElementById("enhancementType").textContent = enhancement.type;
+        document.getElementById("enhancementExample").textContent = enhancement.example;
+      }
     }
+
+    Object.keys(elements).forEach((key) => {
+      const include = document.getElementById(elements[key].include);
+      include.addEventListener("change", () => setActive(key, include.checked));
+    });
 
     document.getElementById("generateButton").addEventListener("click", generateChallenge);
 
